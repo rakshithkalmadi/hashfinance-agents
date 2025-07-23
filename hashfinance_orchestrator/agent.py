@@ -43,5 +43,7 @@ The specialist agent you call will handle the entire process from data retrieval
     tools=[
         AgentTool(sub_agents.projection_agent),
         AgentTool(sub_agents.user_response_agent),
+        AgentTool(sub_agents.cash_flow_agent),
+        AgentTool(sub_agents.debt_management_agent)
     ],
 )
