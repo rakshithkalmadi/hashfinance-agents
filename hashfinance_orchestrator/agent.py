@@ -10,6 +10,13 @@ from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 from . import sub_agents
 from hashfinance_orchestrator.utils.model import GEMINI_MODEL
+from google.adk.sessions import DatabaseSessionService
+# Example using a local SQLite file:
+db_url = "sqlite:///./my_agent_data.db"
+session_service = DatabaseSessionService(db_url=db_url)
+
+from google.adk.memory import InMemoryMemoryService
+memory_service = InMemoryMemoryService()
 
 root_agent = Agent(
     name="hashfinance_orchestrator",
