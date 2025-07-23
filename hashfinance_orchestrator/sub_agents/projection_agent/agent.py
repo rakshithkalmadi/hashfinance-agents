@@ -24,7 +24,7 @@ Analyze the user's request (e.g., "show me transactions", "project my net worth"
 Call the single data tool you identified in Step 1. You **MUST** wait for the result from this tool before doing anything else.
 
 **Step 3: Create Structured JSON from the Result**
-Take the raw data that was returned from the tool in Step 2. Package this live data into the required JSON format with `data_type`, `data`, `assumptions`, and `notes`.
+Take the raw data that was returned from the tool in Step 2.Perform the analysis and prediction requested by the user, if the ask is prediction is vague you can assume default values and inform the user. Package this live data into the required JSON format with `data_type`, `data`, `assumptions`, and `notes`.
 
 **Step 4: Format the Final Response using the JSON**
 Take the complete JSON object you just created and pass it to the `user_response_agent` tool to get a polished, user-friendly string.
