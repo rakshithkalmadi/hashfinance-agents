@@ -1,6 +1,6 @@
-"# HashFinance Agents
+# HashFinance Agents
 
-HashFinance is an intelligent financial AI assistant system built using Google's Agent Development Kit (ADK). It provides users with comprehensive financial analysis, projections, and educational content through a sophisticated multi-agent architecture.
+HashFinance Agents is a modular, multi-agent financial AI assistant system built using Google's Agent Development Kit (ADK). It provides users with comprehensive financial analysis, projections, education, and actionable advice through a sophisticated, extensible architecture.
 
 ## 🚀 What is HashFinance?
 
@@ -9,10 +9,12 @@ HashFinance is a conversational AI platform that helps users:
 - **Make Financial Projections**: Predict future net worth, investment growth, and financial scenarios
 - **Learn Financial Concepts**: Get clear, simple explanations of complex financial terms and strategies
 - **Access Real-time Market Data**: Search for current market information, stock prices, and financial news
+- **Get Personalized Financial Advice**: Receive actionable recommendations on purchases, budgeting, and planning
+- **Understand Cash Flow**: Summarize income, expenses, and net cash flow
 
 ## 🏗️ Architecture Overview
 
-The system follows a hierarchical multi-agent architecture with intelligent task delegation:
+The system follows a hierarchical, multi-agent architecture with intelligent task delegation:
 
 ```
 ┌─────────────────────────────────────┐
@@ -20,80 +22,87 @@ The system follows a hierarchical multi-agent architecture with intelligent task
 │         (Main Brain Agent)          │
 └─────────────┬───────────────────────┘
               │
-    ┌─────────┼─────────┐
-    │         │         │
-    ▼         ▼         ▼
-┌─────────┐ ┌─────────┐ ┌─────────┐
-│Projection│ │Education│ │Response │
-│ Agent   │ │ Agent   │ │ Agent   │
-└─────────┘ └─────────┘ └─────────┘
+    ┌─────────┼─────────┬─────────┬─────────┐
+    │         │         │         │         │
+    ▼         ▼         ▼         ▼         ▼
+┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
+│Projection│ │Education│ │Response │ │Cash Flow│ │Financial│
+│ Agent   │ │ Agent   │ │ Agent   │ │ Agent   │ │Advisor  │
+└─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────┘
     │
     └─── Search Agent
 ```
 
-## 🧠 Core Components
+## 🧠 Core Components & Agent Responsibilities
 
 ### 1. **HashFinance Orchestrator** (`hashfinance_orchestrator/agent.py`)
-The central brain that:
-- Analyzes user queries and conversation context
+- Central brain that analyzes user queries and conversation context
 - Handles simple conversational interactions directly
-- Routes complex financial tasks to specialist agents
+- Delegates complex financial tasks to specialist agents
 - Maintains conversation flow and context awareness
-
-**Key Features:**
-- 3-step decision workflow for efficient query handling
-- Context-aware follow-up question processing
-- Intelligent task delegation to specialist agents
+- **Workflow:**
+  1. Checks if the query is a simple greeting/closing (answers directly)
+  2. Checks if it's a follow-up that can be answered from previous context (answers directly)
+  3. Otherwise, delegates to the best specialist agent, rephrasing the request as needed
 
 ### 2. **Projection Agent** (`sub_agents/projection_agent/agent.py`)
-Specializes in financial data analysis and future projections:
+- Specializes in financial data analysis and future projections
 - Fetches user financial data via MCP (Model Context Protocol) server
-- Performs financial calculations and projections
-- Handles queries like "What will my net worth be in 5 years?"
+- Performs calculations and projections (e.g., "What will my net worth be in 5 years?")
 - Makes reasonable assumptions when data is incomplete
-
-**Workflow:**
-1. Understands the financial goal
-2. Executes appropriate data-gathering tools
-3. Creates structured JSON with analysis results
-4. Formats response through the User Response Agent
+- **Workflow:**
+  1. Understands the financial goal
+  2. Executes the appropriate data-gathering tool
+  3. Creates structured JSON with analysis results
+  4. Formats response through the User Response Agent
 
 ### 3. **Education Agent** (`sub_agents/edu_finance/agent.py`)
-A friendly financial educator named "Timmy":
-- Explains financial concepts in simple, accessible language
-- Uses real-world analogies to clarify complex topics
-- Searches the web for current financial information
+- Friendly financial educator named "Timmy"
+- Explains financial concepts in simple, accessible language using analogies
+- Uses web search for current financial information
 - Always includes disclaimers for educational content
 
 ### 4. **Search Agent** (`sub_agents/search_agent/agent.py`)
-Specialized web search agent:
-- Finds real-time financial data (stock prices, market news)
-- Retrieves historical financial information
+- Specialized web search agent
+- Finds real-time and historical financial data (stock prices, market news)
 - Provides factual data without analysis or opinions
 - Cites sources when possible
 
 ### 5. **User Response Agent** (`sub_agents/user_response_agent/agent.py`)
-The final formatter that:
-- Converts complex JSON data into user-friendly responses
+- Final formatter that converts complex JSON data into user-friendly responses
 - Ensures consistent, friendly communication tone
 - Incorporates assumptions and notes naturally
-- Provides well-structured, readable output
+
+### 6. **Cash Flow Agent** (`sub_agents/cash_flow_agent/agent.py`)
+- Analyzes bank transactions to summarize inflows, outflows, and net cash flow for a given period
+- Identifies major income and expense items
+- Provides clear, actionable summaries of liquidity and spending habits
+
+### 7. **Financial Advisor Agent** (`sub_agents/financial_advisor_agent/agent.py`)
+- Provides personalized advice on purchases, budgeting, and planning
+- Fetches all relevant user data (net worth, transactions, credit, investments)
+- Searches for external prices if needed
+- Calculates affordability, payment plans, and gives concise, actionable advice
 
 ## 🔧 Technical Stack
 
-### Core Technologies
 - **Google Agent Development Kit (ADK)**: Framework for building AI agents
 - **Google Gemini**: Large language model powering the agents
 - **Model Context Protocol (MCP)**: For accessing user financial data
 - **FastAPI**: Web framework for API endpoints
 - **Python 3.11+**: Primary development language
+- **Docker**: For containerized deployment
 
-### Key Dependencies
-- `google-adk==1.7.0` - Agent framework
-- `google-genai==1.26.0` - Gemini model integration
-- `mcp==1.12.0` - Model Context Protocol
-- `fastapi==0.116.1` - Web framework
-- `uvicorn==0.35.0` - ASGI server
+## 📦 Tools & Utilities
+
+- **MCP Tool** (`tools/mcp_server.py`): Connects to the MCP server for secure, real-time access to user financial data
+- **Model Config** (`utils/model.py`): Loads the Gemini model name from environment variables
+
+## 📝 Sample Questions & Testing
+
+- **questions.md**: Sample queries for projection and education agents
+- **questions_s.md**: Sample queries for cash flow, debt management, and portfolio agents
+- **questions.py**: Programmatic sample questions for testing
 
 ## 🚀 Getting Started
 
@@ -141,7 +150,12 @@ GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
 
 ```bash
 # Start the application
-python -m hashfinance_orchestrator
+python -m main
+```
+Or use Docker:
+```bash
+docker build -t hashfinance-agents .
+docker run -p 8080:8080 hashfinance-agents
 ```
 
 ## 📊 Usage Examples
@@ -164,12 +178,16 @@ User: "What is NAV in mutual funds?"
 HashFinance: [Provides simple explanation with analogies and educational context]
 ```
 
-### Follow-up Conversations
+### Cash Flow Summary
 ```
-User: "Show me my portfolio"
-HashFinance: [Shows detailed portfolio breakdown]
-User: "Which investment performed best?"
-HashFinance: [Analyzes previous response to answer without new data calls]
+User: "Summarise my income and expenses."
+HashFinance: [Provides a summary of inflows, outflows, and net cash flow]
+```
+
+### Personalized Advice
+```
+User: "Can I afford to buy an iPhone?"
+HashFinance: [Analyzes your finances, estimates affordability, and suggests payment plans]
 ```
 
 ## 🔄 Agent Workflow
@@ -179,12 +197,9 @@ HashFinance: [Analyzes previous response to answer without new data calls]
 2. **Follow-up Analysis**: Checks if question can be answered from recent context
 3. **Task Delegation**: Routes complex queries to appropriate specialist agents
 
-### Projection Agent Process
-1. **Goal Understanding**: Analyzes the financial request
-2. **Data Execution**: Calls MCP tools for user financial data
-3. **JSON Structure**: Creates standardized data format with assumptions
-4. **Response Formatting**: Uses User Response Agent for final output
-5. **Final Return**: Delivers polished, user-friendly response
+### Specialist Agent Workflows
+- Each agent follows a strict, step-by-step workflow as documented in their respective files
+- All agents return structured JSON, which is formatted by the User Response Agent for the end user
 
 ## 🛡️ Data Security & Privacy
 
@@ -202,16 +217,21 @@ hashfinance-agents/
 │   ├── agent.py                       # Main orchestrator agent
 │   ├── sub_agents/                    # Specialist agents
 │   │   ├── projection_agent/          # Financial analysis & projections
-│   │   ├── edu_finance/              # Financial education
-│   │   ├── search_agent/             # Web search functionality
-│   │   └── user_response_agent/      # Response formatting
-│   ├── tools/                        # External tools & integrations
-│   │   └── mcp_server.py             # MCP server connection
-│   └── utils/                        # Utilities & configuration
-│       └── model.py                  # Model configuration
-├── test/                             # Test files
-├── requirements.txt                  # Python dependencies
-└── questions.md                      # Sample queries for testing
+│   │   ├── edu_finance/               # Financial education
+│   │   ├── search_agent/              # Web search functionality
+│   │   ├── user_response_agent/       # Response formatting
+│   │   ├── cash_flow_agent/           # Cash flow summaries
+│   │   └── financial_advisor_agent/   # Personalized financial advice
+│   ├── tools/                         # External tools & integrations
+│   │   └── mcp_server.py              # MCP server connection
+│   └── utils/                         # Utilities & configuration
+│       └── model.py                   # Model configuration
+├── requirements.txt                   # Python dependencies
+├── Dockerfile                         # Containerization
+├── main.py                            # Application entry point
+├── questions.md / questions_s.md      # Sample queries for testing
+├── questions.py                       # Programmatic sample questions
+└── README.md                          # Project documentation
 ```
 
 ### Adding New Agents
@@ -221,9 +241,7 @@ hashfinance-agents/
 4. Register with orchestrator in main `agent.py`
 
 ### Testing
-Use the sample queries in `questions.md` for testing different agent functionalities:
-- Projection Agent: "How much will I have in 2 years with 10% returns?"
-- Education Agent: "What is NAV in mutual funds?"
+Use the sample queries in `questions.md`, `questions_s.md`, or `questions.py` for testing different agent functionalities.
 
 ## 🤝 Contributing
 
@@ -243,6 +261,4 @@ For issues, questions, or contributions, please refer to the project's issue tra
 
 ---
 
-*HashFinance - Making Financial Intelligence Accessible Through AI*" 
-
- gcloud run deploy "hashfinance-service" --source . --region "asia-southeast1" --allow-unauthenticated
+*HashFinance - Making Financial Intelligence Accessible Through AI*
