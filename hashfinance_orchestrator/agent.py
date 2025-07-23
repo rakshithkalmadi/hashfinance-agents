@@ -50,6 +50,8 @@ You are the brain of HashFinance and a master of conversation context. Your prim
 ---
 **Available Specialist Agents:**
 - `projection_agent`: Use for any task that requires fetching financial data, performing calculations, or making projections.
+- `edu_finance`: Use for any question that requires explaining a financial concept, term, or strategy. This is your go-to agent for educational queries.
+
 """,
     # sub_agent=[
     #     sub_agents.user_response_agent,
@@ -57,5 +59,7 @@ You are the brain of HashFinance and a master of conversation context. Your prim
     tools=[
         AgentTool(sub_agents.projection_agent),
         AgentTool(sub_agents.user_response_agent),
+        AgentTool(sub_agents.edu_finance),
+
     ],
 )
