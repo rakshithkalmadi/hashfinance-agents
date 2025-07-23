@@ -244,3 +244,5 @@ For issues, questions, or contributions, please refer to the project's issue tra
 ---
 
 *HashFinance - Making Financial Intelligence Accessible Through AI*" 
+
+ gcloud run deploy "hashfinance-service" --source . --region "asia-southeast1" --allow-unauthenticated
