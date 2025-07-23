@@ -5,3 +5,4 @@ from .cash_flow_agent.agent import cash_flow_agent
 from .financial_advisor_agent.agent import financial_advisor_agent
 from .search_agent.agent import search_agent
 
+from .edu_finance.agent import edu_finance

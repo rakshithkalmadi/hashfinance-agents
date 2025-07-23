@@ -10,6 +10,13 @@ from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 from . import sub_agents
 from hashfinance_orchestrator.utils.model import GEMINI_MODEL
+from google.adk.sessions import DatabaseSessionService
+# Example using a local SQLite file:
+db_url = "sqlite:///./my_agent_data.db"
+session_service = DatabaseSessionService(db_url=db_url)
+
+from google.adk.memory import InMemoryMemoryService
+memory_service = InMemoryMemoryService()
 
 root_agent = Agent(
     name="hashfinance_orchestrator",
@@ -50,6 +57,8 @@ You are the brain of HashFinance and a master of conversation context. Your prim
 ---
 **Available Specialist Agents:**
 - `projection_agent`: Use for any task that requires fetching financial data, performing calculations, or making projections.
+- `edu_finance`: Use for any question that requires explaining a financial concept, term, or strategy. This is your go-to agent for educational queries.
+
 """,
     # sub_agent=[
     #     sub_agents.user_response_agent,
@@ -59,5 +68,7 @@ You are the brain of HashFinance and a master of conversation context. Your prim
         AgentTool(sub_agents.user_response_agent),
         AgentTool(sub_agents.cash_flow_agent),
         AgentTool(sub_agents.financial_advisor_agent)
+        AgentTool(sub_agents.edu_finance),
+
     ],
 )
