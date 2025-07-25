@@ -1,45 +1,18 @@
-"""
-Speaker Agent Chat Application
-==============================
-
-This Streamlit application provides a chat interface for interacting with the ADK Speaker Agent.
-It allows users to create sessions, send messages, and receive both text and audio responses.
-
-Requirements:
-------------
-- ADK API Server running on localhost:8000
-- Speaker Agent registered and available in the ADK
-- Streamlit and related packages installed
-
-Usage:
-------
-1. Start the ADK API Server: `adk api_server`
-2. Ensure the Speaker Agent is registered and working
-3. Run this Streamlit app: `streamlit run apps/speaker_app.py`
-4. Click "Create Session" in the sidebar
-5. Start chatting with the Speaker Agent
-
-Architecture:
-------------
-- Session Management: Creates and manages ADK sessions for stateful conversations
-- Message Handling: Sends user messages to the ADK API and processes responses
-- Audio Integration: Extracts audio file paths from responses and displays players
-
-API Assumptions:
---------------
-1. ADK API Server runs on localhost:8000
-2. Speaker Agent is registered with app_name="speaker"
-3. The Speaker Agent uses ElevenLabs TTS and saves audio files locally
-4. Audio files are accessible from the path returned in the API response
-5. Responses follow the ADK event structure with model outputs and function calls/responses
-
-"""
 import streamlit as st
 import requests
 import json
 import os
 import uuid
 import time
+import logging
+
+# --- Setup Logging ---
+# This will print logs to your console/terminal
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+# --- End Setup ---
 
 # Set page config
 st.set_page_config(
@@ -55,170 +28,191 @@ APP_NAME = "hashfinance_orchestrator"
 # Initialize session state variables
 if "user_id" not in st.session_state:
     st.session_state.user_id = f"user-{uuid.uuid4()}"
-    
 if "session_id" not in st.session_state:
     st.session_state.session_id = None
-    
 if "messages" not in st.session_state:
     st.session_state.messages = []
-
-if "audio_files" not in st.session_state:
-    st.session_state.audio_files = []
+if "audio_to_play" not in st.session_state:
+    st.session_state.audio_to_play = None
 
 def create_session():
-    """
-    Create a new session with the speaker agent.
-    
-    This function:
-    1. Generates a unique session ID based on timestamp
-    2. Sends a POST request to the ADK API to create a session
-    3. Updates the session state variables if successful
-    
-    Returns:
-        bool: True if session was created successfully, False otherwise
-    
-    API Endpoint:
-        POST /apps/{app_name}/users/{user_id}/sessions/{session_id}
-    """
     session_id = f"session-{int(time.time())}"
-    response = requests.post(
-        f"{API_BASE_URL}/apps/{APP_NAME}/users/{st.session_state.user_id}/sessions/{session_id}",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps({})
-    )
-    
-    if response.status_code == 200:
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/apps/{APP_NAME}/users/{st.session_state.user_id}/sessions/{session_id}",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({}),
+            timeout=10
+        )
+        response.raise_for_status()
         st.session_state.session_id = session_id
         st.session_state.messages = []
-        st.session_state.audio_files = []
+        st.session_state.audio_to_play = None
+        logging.info(f"Successfully created new session: {session_id}")
         return True
-    else:
-        st.error(f"Failed to create session: {response.text}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to create session. Error: {e}")
+        st.error(f"Failed to create session. Is the ADK API server running? Error: {e}")
         return False
 
 def send_message(message):
     """
     Send a message to the speaker agent and process the response.
-    
-    This function:
-    1. Adds the user message to the chat history
-    2. Sends the message to the ADK API
-    3. Processes the response to extract text and audio information
-    4. Updates the chat history with the assistant's response
-    
-    Args:
-        message (str): The user's message to send to the agent
-        
-    Returns:
-        bool: True if message was sent and processed successfully, False otherwise
-    
-    API Endpoint:
-        POST /run
-        
-    Response Processing:
-        - Parses the ADK event structure to extract text responses
-        - Looks for text_to_speech function responses to find audio file paths
-        - Adds both text and audio information to the chat history
     """
     if not st.session_state.session_id:
         st.error("No active session. Please create a session first.")
         return False
     
-    # Add user message to chat
     st.session_state.messages.append({"role": "user", "content": message})
     
-    # Send message to API
-    response = requests.post(
-        f"{API_BASE_URL}/run",
-        headers={"Content-Type": "application/json"},
-        data=json.dumps({
-            "app_name": APP_NAME,
-            "user_id": st.session_state.user_id,
-            "session_id": st.session_state.session_id,
-            "new_message": {
-                "role": "user",
-                "parts": [{"text": message}]
-            }
-        })
-    )
-    
-    if response.status_code != 200:
-        st.error(f"Error: {response.text}")
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/run",
+            headers={"Content-Type": "application/json"},
+            data=json.dumps({
+                "app_name": APP_NAME,
+                "user_id": st.session_state.user_id,
+                "session_id": st.session_state.session_id,
+                "new_message": {"role": "user", "parts": [{"text": message}]}
+            }),
+            timeout=30
+        )
+        response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        logging.error(f"API request failed: {e}")
+        st.error(f"Failed to send message. Error: {e}")
+        st.session_state.messages.pop()
         return False
-    
-    # Process the response
+        
     events = response.json()
-    
-    # Extract assistant's text response
+    logging.info(f"Received API response events: {events}")
+
     assistant_message = None
     audio_file_path = None
     
+    # ==================== NEW LOGIC START ====================
+    # Loop through all events to find the text response AND the function response path
     for event in events:
-        # Look for the final text response from the model
-        if event.get("content", {}).get("role") == "model" and "text" in event.get("content", {}).get("parts", [{}])[0]:
-            assistant_message = event["content"]["parts"][0]["text"]
+        content = event.get("content", {})
+        if not content:
+            continue
         
-        # Look for text_to_speech function response to extract audio file path
-        if "functionResponse" in event.get("content", {}).get("parts", [{}])[0]:
-            func_response = event["content"]["parts"][0]["functionResponse"]
-            if func_response.get("name") == "text_to_speech":
-                response_text = func_response.get("response", {}).get("result", {}).get("content", [{}])[0].get("text", "")
-                # Extract file path using simple string parsing
-                if "File saved as:" in response_text:
-                    parts = response_text.split("File saved as:")[1].strip().split()
-                    if parts:
-                        audio_file_path = parts[0].strip(".")
+        parts = content.get("parts", [{}])
+        
+        # 1. Look for the final text response from the model to display
+        if content.get("role") == "model" and "text" in parts[0]:
+            assistant_message = parts[0]["text"]
+            logging.info(f"Found final assistant text: '{assistant_message}'")
+
+        # 2. Look for the function response that contains the file path
+        if "functionResponse" in parts[0]:
+            func_response_part = parts[0]["functionResponse"]
+            logging.info(f"Found function response: {func_response_part}")
+
+            # Check if this is from our speech agent (note the name from your logs)
+            if func_response_part.get("name") == "speach_agent": 
+                response_data = func_response_part.get("response", {})
+                result_text = response_data.get("result", "")
+                logging.info(f"Function result text: '{result_text}'")
+
+                # Parse the path from this specific result text
+                if "saved at" in result_text:
+                    try:
+                        # Get the part after "saved at", strip whitespace and backticks
+                        path_part = result_text.split("saved at")[1].strip().strip('`')
+                        if ".mp3" in path_part:
+                            # Reconstruct to avoid extra text
+                            audio_file_path = path_part.split(".mp3")[0] + ".mp3"
+                            logging.info(f"Extracted path from function response: '{audio_file_path}'")
+                    except IndexError:
+                        pass
+    # ===================== NEW LOGIC END =====================
+
+    if audio_file_path:
+        # Sanitize the path to handle Windows backslashes
+        sanitized_path = audio_file_path.replace("\\", "/").strip()
+        logging.info(f"Sanitized path for os.path.exists: '{sanitized_path}'")
+        audio_file_path = sanitized_path
+        
+        # ==================== AUTOPLAY CHANGE ====================
+        # Set the session state to trigger the audio player automatically
+        st.session_state.audio_to_play = audio_file_path
+        logging.info(f"Set audio_to_play for autoplay: {audio_file_path}")
+        # =========================================================
+
+    else:
+        logging.warning("Could not find an audio file path in any of the API response events.")
     
-    # Add assistant response to chat
-    if assistant_message:
-        st.session_state.messages.append({"role": "assistant", "content": assistant_message, "audio_path": audio_file_path})
+    # Use the final text message, or a default if none is found
+    final_message_to_display = assistant_message if assistant_message else "Action completed."
+    
+    st.session_state.messages.append({"role": "assistant", "content": final_message_to_display, "audio_path": audio_file_path})
     
     return True
 
-# UI Components
+# --- UI Components ---
 st.title("🔊 Speaker Agent Chat")
 
-# Sidebar for session management
 with st.sidebar:
     st.header("Session Management")
-    
     if st.session_state.session_id:
         st.success(f"Active session: {st.session_state.session_id}")
         if st.button("➕ New Session"):
             create_session()
+            st.rerun()
     else:
         st.warning("No active session")
         if st.button("➕ Create Session"):
             create_session()
-    
+            st.rerun()
     st.divider()
-    st.caption("This app interacts with the Speaker Agent via the ADK API Server.")
-    st.caption("Make sure the ADK API Server is running on port 8000.")
+    st.caption(f"Agent: '{APP_NAME}'")
 
-# Chat interface
 st.subheader("Conversation")
 
-# Display messages
-for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.chat_message("user").write(msg["content"])
-    else:
-        with st.chat_message("assistant"):
-            st.write(msg["content"])
+for i, msg in enumerate(st.session_state.messages):
+    with st.chat_message(msg["role"]):
+        st.write(msg["content"])
+        
+        if msg["role"] == "assistant" and msg.get("audio_path"):
+            audio_path = msg["audio_path"]
             
-            # Handle audio if available
-            if "audio_path" in msg and msg["audio_path"]:
-                audio_path = msg["audio_path"]
-                if os.path.exists(audio_path):
-                    st.audio(audio_path)
-                else:
-                    st.warning(f"Audio file not accessible: {audio_path}")
+            # --- Detailed Logging for path check ---
+            logging.info("--- Checking Audio Path ---")
+            logging.info(f"Message index: {i}")
+            logging.info(f"Path to check: '{audio_path}'")
+            logging.info(f"Type of path variable: {type(audio_path)}")
+            logging.info(f"Current working directory: {os.getcwd()}")
+            
+            exists = os.path.exists(audio_path)
+            logging.info(f"os.path.exists() result: {exists}")
+            # --- End Logging ---
 
-# Input for new messages
-if st.session_state.session_id:  # Only show input if session exists
+            if exists:
+                if st.button("▶️ Play Audio", key=f"play_{i}"):
+                    st.session_state.audio_to_play = audio_path
+                    st.rerun()
+            else:
+                st.warning(f"Audio file not accessible: `{audio_path}`")
+
+if st.session_state.audio_to_play:
+    path_to_play = st.session_state.audio_to_play
+    logging.info(f"Attempting to play audio file: {path_to_play}")
+    try:
+        with open(path_to_play, "rb") as audio_file:
+            audio_bytes = audio_file.read()
+        st.audio(audio_bytes, format="audio/mp3", autoplay=True)
+        logging.info("Successfully loaded audio bytes for playback.")
+    except Exception as e:
+        logging.error(f"Could not open or read audio file. Error: {e}")
+        st.error(f"Could not play audio file: {e}")
+    
+    st.session_state.audio_to_play = None
+
+if st.session_state.session_id:
     user_input = st.chat_input("Type your message...")
     if user_input:
         send_message(user_input)
-        st.rerun()  # Rerun to update the UI with new messages
+        st.rerun()
 else:
-    st.info("👈 Create a session to start chatting")
+    st.info("👈 Create a session in the sidebar to start chatting")
