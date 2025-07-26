@@ -1,19 +1,16 @@
-# hashfinance_orchestrator/sub_agents/financial_advisor_agent/agent.py
 
 from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 from hashfinance_orchestrator.tools.mcp_server import mcp_tool
 from hashfinance_orchestrator.sub_agents.search_agent import search_agent
-from hashfinance_orchestrator.sub_agents.user_response_agent import user_response_agent
 
 
 insights_agent = Agent(
     name="insights_agent",
-    model="gemini-2.5-flash", 
+    model="gemini-2.5-flash",
     description="An advanced analytical agent that ingests raw financial data (e.g., CSVs, reports, database dumps), processes it, identifies key trends, anomalies, and patterns, and generates actionable, summarized financial insights.",
     tools=[
-        AgentTool(search_agent),
-        AgentTool(user_response_agent)
+        AgentTool(search_agent)
     ],
     instruction="""
 You are the Financial Analytical Agent, a highly knowledgeable AI that provides personalized financial analytics and insights. You MUST follow this strict, step-by-step workflow. Do not combine steps.
@@ -50,10 +47,14 @@ Package your insights and recommendations into a JSON object with the following 
 * `notes`: Important disclaimers or assumptions.
 
 **Step 6: Format the Final Response using the JSON**
-Call the `user_response_agent` tool, passing the complete JSON object from Step 5. **MUST** wait for the formatted string result.
+Using the JSON object from Step 5, generate a clear, user-friendly markdown report.
+* Start with a main heading using the `data_type` (e.g., `## Spending Habits Analysis`).
+* Present the key findings from the `main_insights` section, using subheadings or bullet points for clarity.
+* List the `recommendations` as an actionable, bulleted list under a "Recommendations" heading.
+* Include any important `notes` or assumptions at the end under a "Notes" heading.
 
 **Step 7: Return the Final Answer**
-Return the formatted string received from the `user_response_agent` as your final output to the Orchestrator.
+Return the formatted markdown string you created in Step 6 as your final output to the Orchestrator.
 
 IMPORTANT GUIDELINES:
 -   You are a **data scientist** and **analytical expert**, transforming raw data into meaningful understanding.
