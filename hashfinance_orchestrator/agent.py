@@ -63,6 +63,7 @@ You are the brain of HashFinance and a master of conversation context. Your prim
         AgentTool(sub_agents.financial_advisor_agent),
         AgentTool(sub_agents.edu_finance),
         AgentTool(sub_agents.speach_agent),
+        AgentTool(sub_agents.insights_agent)
 
     ],
 )
