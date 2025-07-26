@@ -7,3 +7,4 @@ from .search_agent.agent import search_agent
 from .speach_agent.agent import speach_agent
 from .edu_finance.agent import edu_finance
 from .insights_agent.agent import insights_agent
+from .stock_analyst.agent import stock_analyst
