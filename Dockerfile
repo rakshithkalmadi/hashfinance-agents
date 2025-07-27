@@ -1,17 +1,21 @@
 # Use an official Python runtime as a parent image
-FROM python:3.11-slim
+FROM python:3.11-slim-buster
 
-# Set environment variables
-ENV PYTHONUNBUFFERED True
-ENV APP_HOME /app
-WORKDIR $APP_HOME
+# Set the working directory in the container
+WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
+# Copy the .env file into the container
+COPY .env /app/.env
+
+# Copy the current directory contents into the container at /app
+COPY . /app
+
+# Install any needed packages specified in requirements.txt
+# If requirements.txt is empty or not readable, this step will still run but won't install anything.
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source code
-COPY . .
+# Expose port 8080 for the FastAPI application
+EXPOSE 8000
 
-# Define the command to run your app
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Run the application using uvicorn
+CMD ["python", "main.py"]

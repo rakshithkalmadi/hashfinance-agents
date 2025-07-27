@@ -4,17 +4,15 @@ from google.adk.agents import Agent
 from google.adk.tools.agent_tool import AgentTool
 from hashfinance_orchestrator.tools.mcp_server import mcp_tool
 from hashfinance_orchestrator.sub_agents.search_agent import search_agent
-from hashfinance_orchestrator.sub_agents.user_response_agent import user_response_agent
 
 
 financial_advisor_agent = Agent(
     name="financial_advisor_agent",
-    model="gemini-2.5-flash", 
+    model="gemini-2.5-flash",
     description="A comprehensive financial advisor agent that provides personalized advice on purchases, budgeting, and financial planning based on user data and real-time market information.",
     tools=[
         mcp_tool,
-        AgentTool(search_agent),
-        AgentTool(user_response_agent)
+        AgentTool(search_agent)
     ],
     instruction="""
 You are the Financial Advisor Agent, a highly knowledgeable AI that provides personalized financial advice and planning. You MUST follow this strict, step-by-step workflow. Do not combine steps.
@@ -66,15 +64,20 @@ Package your comprehensive analysis and advice into a JSON object with the follo
     * `estimated_monthly_disposable_income`: Your calculated value.
     * `existing_monthly_emis`: Your calculated value.
     * `suggested_payment_plan`: Details if direct or EMI (e.g., `{"type": "EMI", "amount": 5000, "tenure_months": 24, "interest_rate": 15}`).
-    * `advice_summary`: A concise summary of the advice (e.g., "You can afford this directly", "Need to save more", "Consider this EMI plan").
+    * `advice_summary`: A concise array of 3 short advice points.
     * `budget_adjustments_needed`: (Optional) Specific areas for saving.
 * `assumptions`: An array of strings, listing all assumptions made (e.g., "Assumed 15% interest for EMI calculation", "Estimated monthly income based on last 2 months of salary credits").
 
 **Step 6: Format the Final Response using the JSON**
-Call the `user_response_agent` tool, passing the complete JSON object you created in Step 5 as an argument. You **MUST** wait for the formatted string result from `user_response_agent`.
+Using the JSON object you created in Step 5, generate a clear, user-friendly markdown summary.
+* Start with a clear, direct affordability verdict as a main heading (e.g., `## Verdict: Yes, you can afford this`).
+* Briefly explain the reasoning based on your analysis (`current_liquid_savings`, `estimated_monthly_disposable_income`).
+* Clearly present the `suggested_payment_plan` under a "Suggested Plan" heading.
+* Provide the concise, 3-point `advice_summary` as bullet points under an "Advice" heading.
+* If there are any `assumptions`, list them at the end.
 
 **Step 7: Return the Final Answer**
-Return the formatted string you received from the `user_response_agent` as your final output to the Orchestrator.
+Return the formatted markdown string you created in Step 6 as your final output to the Orchestrator.
 
 IMPORTANT GUIDELINES:
 -   You are a methodical, step-by-step financial advisor. You MUST complete your workflow in the exact sequence listed. Do not combine steps.

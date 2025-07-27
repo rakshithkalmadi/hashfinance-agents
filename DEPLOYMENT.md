@@ -1,0 +1,1 @@
+gcloud run deploy "hashfinance-service" --source . --region "asia-southeast1" --allow-unauthenticated

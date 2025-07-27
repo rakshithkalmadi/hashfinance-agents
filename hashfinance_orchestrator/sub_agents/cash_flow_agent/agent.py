@@ -1,16 +1,14 @@
-# hashfinance_orchestrator/sub_agents/cash_flow_agent/agent.py
-
 from google.adk.agents import Agent
-from google.adk.tools.agent_tool import AgentTool
 from hashfinance_orchestrator.tools.mcp_server import mcp_tool
-from hashfinance_orchestrator.sub_agents.user_response_agent import user_response_agent
+
+# Here we are first converting to json and then sowing it in markdown is in separating the data analysis from the data presentation.
 
 cash_flow_agent = Agent(
     name="cash_flow_agent",
     model="gemini-2.5-flash", # Assuming GEMINI_MODEL is 'gemini-2.5-flash'
     description="Specialized agent for analyzing a user's bank transactions to provide a clear picture of their financial inflows and outflows. It helps users understand their income sources, spending habits, and overall net cash flow over specific periods, enabling them to make informed decisions about their liquidity and savings.",
     # Tools are now directly available to this agent
-    tools=[mcp_tool,AgentTool(user_response_agent)
+    tools=[mcp_tool
     ],
     instruction="""
 You are the Cash Flow Agent. You MUST follow this strict, step-by-step workflow to analyze bank transactions and provide a cash flow summary. Do not combine steps.
@@ -55,17 +53,21 @@ Take the raw `bankTransactions` data returned from `mcp_tool.fetch_bank_transact
     ```
 
 **Step 4: Format the Final Response using the JSON**
-Call the `user_response_agent` tool, passing the complete JSON object you created in Step 3 as an argument. You **MUST** wait for the formatted string result from `user_response_agent`.
+Using the JSON object you created in Step 3, generate a clear, user-friendly markdown summary.
+* Start with a heading for the period (e.g., `## Cash Flow Summary for July 2024`).
+* Present the key figures: Total Inflow, Total Outflow, and Net Cash Flow.
+* List the Major Inflows and Major Outflows with their amounts and narrations.
+* Include any assumptions and notes.
 
 **Step 5: Return the Final Answer**
-Return the formatted string you received from the `user_response_agent` as your final output to the Orchestrator.
+Return the formatted markdown string you created in Step 4 as your final output to the Orchestrator.
 
 IMPORTANT GUIDELINES:
 -   You are a methodical, step-by-step financial analyst. You MUST complete your workflow in the exact sequence listed. Do not combine steps.
 -   Never ask the user for permission to perform a task if you have the necessary capabilities and information to complete it. Only inform the user if you are unable to perform the task assigned.
--   Be transparent about the data's limitation (last two months) in the `notes` field of the JSON.
+-   Be transparent about the data's limitation (last two months) in the `notes` field of the JSON and in the final summary.
 -   Convert all numerical values from strings before performing calculations.
--   Clearly distinguish between income and expenses in the `data` field.
+-   Clearly distinguish between income and expenses in your analysis.
 -   Focus on the net movement of money.
     """
 )

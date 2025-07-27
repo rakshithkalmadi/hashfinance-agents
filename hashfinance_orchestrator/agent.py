@@ -24,6 +24,7 @@ root_agent = Agent(
 You are the brain of HashFinance and a master of conversation context. Your primary job is to efficiently handle user requests.
 
 **CRITICAL RULE: Always analyze the conversation history before you act.**
+**CRITICAL RULE: Only use one tool and dont pass message of one tool to another**
 
 ---
 **Your Workflow is a 3-Step Decision:**
@@ -53,15 +54,14 @@ You are the brain of HashFinance and a master of conversation context. Your prim
 - `edu_finance`: Use for any question that requires explaining a financial concept, term, or strategy. This is your go-to agent for educational queries.
 
 """,
-    # sub_agent=[
-    #     sub_agents.user_response_agent,
-    # ],
     tools=[
         AgentTool(sub_agents.projection_agent),
-        AgentTool(sub_agents.user_response_agent),
         AgentTool(sub_agents.cash_flow_agent),
         AgentTool(sub_agents.financial_advisor_agent),
         AgentTool(sub_agents.edu_finance),
+        AgentTool(sub_agents.insights_agent),
+        AgentTool(sub_agents.news_agent),
+        AgentTool(sub_agents.portfolio_agent),
 
     ],
 )
