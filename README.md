@@ -1,3 +1,5 @@
+Please check the rk_prod branch for full codde
+
 # HashFinance Agents
 
 HashFinance Agents is a modular, multi-agent financial AI assistant system built using Google's Agent Development Kit (ADK). It provides users with comprehensive financial analysis, projections, education, and actionable advice through a sophisticated, extensible architecture.
