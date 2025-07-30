@@ -12,14 +12,10 @@ mcp_tool = MCPToolset(
 
 ELEVEN_LABS_API = os.environ.get("ELEVEN_LABS_API")
 if not ELEVEN_LABS_API:
-    print("WARNING: Maps_API_KEY is not set as an environment variable.")
+    print("WARNING: ELEVEN_LABS_API is not set as an environment variable.")
 
 elevenlabs_tool = MCPToolset(
-            connection_params=StdioServerParameters(
-    command='uvx',
-    args=["elevenlabs-mcp"],
-    env={
-        "ELEVENLABS_API_KEY": ELEVEN_LABS_API
-    }
-)
-)
+            connection_params=StreamableHTTPConnectionParams(
+                url=os.getenv("ELEVEN_SERVER_URL","http://localhost:8081/mcp/stream")
+            )
+        )
